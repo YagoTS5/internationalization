@@ -1,4 +1,3 @@
-// Codigo Servo - primeira apresentacao || Servo Code - first presentation
 // PUC 2023-07-04
 #define BLYNK_TEMPLATE_ID "TMPL9x4-w8GW"
 #define BLYNK_TEMPLATE_NAME "TESTE ESP8266 NODEMCU"
@@ -19,4 +18,6 @@ char pass[] = "xxxxx";  // Enter your Wifi password
 int ledpin = D4;
 int val;
 BLYNK_WRITE(V4){
-  digitalWrite
+  digitalWrite(ledpin, param.asInt());
+}
+
