@@ -1,0 +1,22 @@
+// Codigo Servo - primeira apresentacao || Servo Code - first presentation
+// PUC 2023-07-04
+#define BLYNK_TEMPLATE_ID "TMPL9x4-w8GW"
+#define BLYNK_TEMPLATE_NAME "TESTE ESP8266 NODEMCU"
+#define BLYNK_AUTH_TOKEN "ibaOXdu8kEtiNNCQQc8rlG-wUuaIn38S"
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>  
+#include <BlynkSimpleEsp8266.h>
+#include <Servo.h> 
+Servo servo;
+char auth[] = BLYNK_AUTH_TOKEN;
+
+char ssid[] = "MARIANA";  // Enter your Wifi Username
+char pass[] = "xxxxx";  // Enter your Wifi password
+//char ssid[] = "iPhone de Francisco (2)";  // Enter your Wifi Username
+//char pass[] = "xxxx";  // Enter your Wifi password
+
+int ledpin = D4;
+int val;
+BLYNK_WRITE(V4){
+  digitalWrite
