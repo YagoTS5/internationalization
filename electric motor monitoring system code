@@ -1,0 +1,154 @@
+// Include necessary libraries
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Preferences.h>
+#include "DHT.h"
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+// Temperature sensor configuration
+#define DHTPIN 33
+#define DHTTYPE DHT22     
+DHT dht(DHTPIN, DHTTYPE);
+
+//Blynk user configuration
+#define BLYNK_TEMPLATE_ID           "TMPL22DhhCCBU"
+#define BLYNK_TEMPLATE_NAME         "Motor"
+#define BLYNK_AUTH_TOKEN            "Piistejn0ZVXUFNKHCREjrR29Wiak69s"
+BlynkTimer timer;
+
+// Instantiate the Preferences object to handle EEPROM operations
+Preferences preferences;
+
+// Define EEPROM namespace and keys for various data
+const char* eepromNamespace = "count";
+const char* eepromKeyBoot = "bootCount";
+const char* eepromKeyHour = "hoursCount";
+const char* eepromKeyMin = "minutesCount";
+const char* eepromKeySec = "secondsCount";
+
+// Your WiFi credentials.
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Yago_S21";
+char pass[] = "uulm7546";
+
+// Set up the LCD display with I2C address and dimensions
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Define global variables for time tracking and boot count
+int bootCount = 0;
+unsigned long previousMillis = 0;
+const long interval = 1000;
+int seconds = 0;
+int minutes = 0;
+int hours = 0;
+
+// Define pin for reset button
+const int resetPin = 13;
+
+// Define pin for ControlDisplay button
+const int ControlDisplay = 5;
+
+void setup() {
+    // Pass parameters to blynk in the cloud
+    Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+    // Set the reset pin as an input with pull-down resistor
+    pinMode(resetPin, INPUT_PULLDOWN);
+    // Set the reset pin as an input with pull-down resistor
+    pinMode(ControlDisplay, INPUT_PULLDOWN);
+    
+    // Start EEPROM with the defined namespace
+    preferences.begin(eepromNamespace, false);
+
+    // Retrieve saved values from EEPROM or use default values
+    bootCount = preferences.getInt(eepromKeyBoot, 0);
+    hours = preferences.getInt(eepromKeyHour, 0);
+    minutes = preferences.getInt(eepromKeyMin, 0);
+    seconds = preferences.getInt(eepromKeySec, 0);
+
+    // Increment boot count and save back to EEPROM
+    bootCount++;
+    preferences.putInt(eepromKeyBoot, bootCount);
+
+    // Initialize the LCD display and show boot count
+    lcd.begin(); 
+    lcd.backlight();
+    lcd.print("No of starts: ");
+    lcd.setCursor(14, 0);
+    lcd.print(bootCount);
+
+    Serial.begin(9600);
+    Serial.println(F("DHTxx test!"));
+    dht.begin();
+}
+
+void loop() {
+    // Check if the reset button is pressed
+    if (digitalRead(resetPin) == HIGH) {
+        // Clear saved preferences in EEPROM
+        preferences.clear();
+
+        // Update LCD to show that program has stopped
+        lcd.clear();
+        lcd.print("Program stopped:");
+        lcd.setCursor(0, 1);
+        lcd.print("EEPROM reset");
+
+        // Halt the program indefinitely
+        while (1);
+    }
+    // Function that reads the value of the digital pin and transforms it into a value
+    float t = dht.readTemperature();
+    // sending the temperature value to the blynk app
+    Blynk.virtualWrite(V2, t);
+    // Time tracking logic
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+        previousMillis = currentMillis;
+        seconds++;
+
+        // Handle minute and hour overflows
+        if (seconds >= 60) {
+            minutes++;
+            seconds = 0;
+        }
+        if (minutes >= 60) {
+            hours++;
+            minutes = 0;
+        }
+
+        // Save updated time to EEPROM
+        preferences.putInt(eepromKeySec, seconds);
+        preferences.putInt(eepromKeyMin, minutes);
+        preferences.putInt(eepromKeyHour, hours);
+
+        // Update LCD with the current time
+        // ControlDisplay is the button that selects whether the temperature or time will be displayed
+        if(digitalRead(ControlDisplay) == HIGH){
+        lcd.setCursor(0, 1);
+        lcd.print("Time: ");
+        if (hours < 10) lcd.print("0");
+        lcd.print(hours);
+        lcd.print(":");
+        if (minutes < 10) lcd.print("0");
+        lcd.print(minutes);
+        lcd.print(":");
+        if (seconds < 10) lcd.print("0");
+        lcd.print(seconds);
+        }else if(digitalRead(ControlDisplay) == LOW){
+        lcd.setCursor(0, 1);
+        lcd.print("Temp: ");
+        lcd.print(t);  
+        lcd.print("C      ");     
+        }else{
+        lcd.setCursor(0, 1);
+        lcd.print("ERRO");
+        }
+    }
+   // sending measured time values to the blynk app
+   Blynk.virtualWrite(V3, seconds);
+   Blynk.virtualWrite(V5, minutes);
+   Blynk.virtualWrite(V6, hours);
+   Blynk.run();
+}
